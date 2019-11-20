@@ -53,7 +53,7 @@ TENCENT_APP_ID=123
 # serverless.yml
 
 restApi:
-  component: "@serverless/tencent-apigateway"
+  component: "@tencent-serverless/tencent-apigateway-beta"
   inputs:
     region: ap-shanghai
     protocol: http

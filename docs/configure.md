@@ -6,7 +6,7 @@
 # serverless.yml
 
 restApi:
-  component: "@serverless/tencent-apigateway"
+  component: "@tencent-serverless/tencent-apigateway-beta"
   inputs:
     serviceId: service-8dsikiq6
     region: ap-shanghai
