@@ -613,16 +613,21 @@ class TencentApiGateway extends Component {
   }
 
   async remove(inputs = {}) {
+    // login
+    const temp = this.context.instance.state.status
+    this.context.instance.state.status = true
+    let { tencent } = this.context.credentials
+    if (!tencent) {
+      tencent = await this.getTempKey(temp)
+      this.context.credentials.tencent = tencent
+    }
+
     this.context.status('Removing')
     if (!this.state.apis) {
       this.context.debug(`Aborting removal. function name not found in state.`)
       return
     }
-    let { tencent } = this.context.credentials
-    if (!tencent) {
-      tencent = await this.getTempKey(tencent)
-      this.context.credentials.tencent = tencent
-    }
+
     const apig = new Capi({
       SecretId: this.context.credentials.tencent.SecretId,
       SecretKey: this.context.credentials.tencent.SecretKey,
