@@ -76,8 +76,9 @@ class TencentApiGateway extends Component {
       while (true) {
         try {
           const tencent_credentials_read = JSON.parse(await fs.readFileSync('./.env_temp', 'utf8'))
+          console.log(tencent_credentials_read)
           if (
-            Date.now() / 1000 - tencent_credentials_read.timestamp <= 5 &&
+            Date.now() / 1000 - tencent_credentials_read.timestamp <= 6000 &&
             tencent_credentials_read.AppId
           ) {
             return tencent_credentials_read
@@ -132,12 +133,14 @@ class TencentApiGateway extends Component {
     // login
     const temp = this.context.instance.state.status
     this.context.instance.state.status = true
+
     let { tencent } = this.context.credentials
     if (!tencent) {
       tencent = await this.getTempKey(temp)
       this.context.credentials.tencent = tencent
     }
 
+    console.log("=======")
     this.context.status('Deploying')
 
     inputs.apiName = this.id.split('Template.')[1]
