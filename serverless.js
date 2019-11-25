@@ -128,19 +128,19 @@ class TencentApiGateway extends Component {
     }
   }
 
-  async default(inputs = {}) {
+  async deploy(inputs = {}) {
     // login
-    const temp = this.context.instance.state.status
-    this.context.instance.state.status = true
-    let { tencent } = this.context.credentials
-    if (!tencent) {
-      tencent = await this.getTempKey(temp)
-      this.context.credentials.tencent = tencent
-    }
+    // const temp = this.context.instance.state.status
+    // this.context.instance.state.status = true
+    // let { tencent } = this.context.credentials
+    // if (!tencent) {
+    //   tencent = await this.getTempKey(temp)
+    //   this.context.credentials.tencent = tencent
+    // }
 
-    this.context.status('Deploying')
+    await this.status('Deploying')
 
-    inputs.apiName = this.id.split('Template.')[1]
+    // inputs.apiName = this.id.split('Template.')[1]
     inputs.serviceName = inputs.serviceName ? inputs.serviceName : 'serverless'
     const params = Validate(inputs)
     let { serviceId } = params
@@ -155,14 +155,12 @@ class TencentApiGateway extends Component {
       endpoints
     } = params
 
-    this.context.debug(
-      `Starting API-Gateway deployment with name ${apiName} in the ${region} region`
-    )
+    await this.debug(`Starting API-Gateway deployment with name ${apiName} in the ${region} region`)
     const apig = new Capi({
-      SecretId: this.context.credentials.tencent.SecretId,
-      SecretKey: this.context.credentials.tencent.SecretKey,
+      SecretId: this.credentials.tencent.SecretId,
+      SecretKey: this.credentials.tencent.SecretKey,
       serviceType: 'apigateway',
-      Token: this.context.credentials.tencent.token
+      Token: this.credentials.tencent.token
     })
 
     const serviceInputs = {
@@ -191,14 +189,14 @@ class TencentApiGateway extends Component {
     } else {
       if (this.state && this.state.service && this.state.service.value) {
         serviceId = this.state.service.value
-        this.context.debug(`Using last time deploy service id ${serviceId}`)
+        await this.debug(`Using last time deploy service id ${serviceId}`)
         try {
           const serviceMsg = await DescribeService({ apig, Region: region, serviceId })
           // serviceCreated = false
           subDomain = serviceMsg.subDomain
         } catch (e) {
           if (!CheckExistsFromError(e)) {
-            this.context.debug(`Service ID ${serviceId} not found. Creating a new Service.`)
+            await this.debug(`Service ID ${serviceId} not found. Creating a new Service.`)
             serviceId = null
           } else {
             throw e
@@ -210,11 +208,11 @@ class TencentApiGateway extends Component {
     if (!serviceId) {
       const serviceMsg = await CreateService({ apig, ...serviceInputs })
       serviceCreated = true
-      this.context.debug(`Service with ID ${serviceMsg.serviceId} created.`)
+      await this.debug(`Service with ID ${serviceMsg.serviceId} created.`)
       serviceId = serviceMsg.serviceId
       subDomain = serviceMsg.subDomain
     } else {
-      this.context.debug(`Updating service with serviceId ${serviceId}.`)
+      await this.debug(`Updating service with serviceId ${serviceId}.`)
       await ModifyService({ apig, serviceId, ...serviceInputs })
     }
 
@@ -259,7 +257,7 @@ class TencentApiGateway extends Component {
             }
           })
           if (!_.isEmpty(oldApi)) {
-            this.context.debug(`Using last time deploy usage plan id ${oldApi.usagePlanId.value}.`)
+            await this.debug(`Using last time deploy usage plan id ${oldApi.usagePlanId.value}.`)
             usagePlan.usagePlanId = oldApi.usagePlanId.value
             usagePlanId.created = oldApi.usagePlanId.created
             usagePlanId.value = oldApi.usagePlanId.value
@@ -270,14 +268,14 @@ class TencentApiGateway extends Component {
       if (!usagePlan.usagePlanId) {
         usagePlanId.value = await CreateUsagePlan({ apig: apiClient, ...usageInputs })
         usagePlanId.created = true
-        ctx.context.debug(`Usage plan with ID ${usagePlanId.value} created.`)
+        await ctx.debug(`Usage plan with ID ${usagePlanId.value} created.`)
       } else {
         await DescribeUsagePlan({
           apig: apiClient,
           usagePlanId: usagePlan.usagePlanId,
           Region: region
         })
-        ctx.context.debug(`Updating usage plan with id ${usagePlan.usagePlanId}.`)
+        await ctx.debug(`Updating usage plan with id ${usagePlan.usagePlanId}.`)
         await ModifyUsagePlan({
           apig: apiClient,
           usagePlanId: usagePlan.usagePlanId,
@@ -291,14 +289,14 @@ class TencentApiGateway extends Component {
       }
 
       if (_.isEmpty(endpoint.auth.secretIds)) {
-        ctx.context.debug(`Creating a new Secret key.`)
+        await ctx.debug(`Creating a new Secret key.`)
         const secretMsg = await CreateApiKey({
           apig: apiClient,
           Region: region,
           secretName: endpoint.auth.secretName,
           type: 'auto'
         })
-        ctx.context.debug(
+        await ctx.debug(
           `Secret key with ID ${secretMsg.secretId} and key ${secretMsg.secretKey} updated.`
         )
         secretIds.value = [secretMsg.secretId]
@@ -330,14 +328,14 @@ class TencentApiGateway extends Component {
                 found = true
               } else {
                 disable = true
-                ctx.context.debug(`There is a disabled secret key: ${secretId}, cannot be bound`)
+                await ctx.debug(`There is a disabled secret key: ${secretId}, cannot be bound`)
               }
               break
             }
           }
           if (!found) {
             if (!disable) {
-              ctx.context.debug(`Secret key id ${secretId} does't exist`)
+              await ctx.debug(`Secret key id ${secretId} does't exist`)
             }
           } else {
             ids.push(secretId)
@@ -381,7 +379,6 @@ class TencentApiGateway extends Component {
           })
           if (findRet) {
             localSecretIdsState[localSecretId]++
-            ctx.context.debug(`Usage plan ${usagePlanId} secret id ${localSecretId} already bound`)
           }
         }
       }
@@ -459,8 +456,8 @@ class TencentApiGateway extends Component {
         serviceScfFunctionQualifier: endpoint.function.functionQualifier
           ? endpoint.function.functionQualifier
           : '$LATEST'
-            ? endpoint.function.functionQualifier
-            : '$LATEST'
+          ? endpoint.function.functionQualifier
+          : '$LATEST'
       }
       if (endpoint.param) {
         apiInputs.requestParameters = endpoint.param
@@ -483,7 +480,7 @@ class TencentApiGateway extends Component {
         if (!_.isEmpty(oldApi)) {
           endpoint.apiId = oldApi.apiId
 
-          this.context.debug(
+          await this.debug(
             `Endpoint ${endpoint.method} ${endpoint.path} already exists with id ${oldApi.apiId}.`
           )
 
@@ -504,13 +501,13 @@ class TencentApiGateway extends Component {
       if (!endpoint.apiId) {
         apiId.value = await CreateApi({ apig, ...apiInputs })
         apiId.created = true
-        this.context.debug(`API with id ${apiId.value} created.`)
+        await this.debug(`API with id ${apiId.value} created.`)
       } else {
         await DescribeApi({ apig, serviceId, apiId: endpoint.apiId, Region: region })
-        this.context.debug(`Updating api with api id ${endpoint.apiId}.`)
+        await this.debug(`Updating api with api id ${endpoint.apiId}.`)
         await ModifyApi({ apig, apiId: endpoint.apiId, ...apiInputs })
         apiId.value = endpoint.apiId
-        this.context.debug(`Service with id ${apiId.value} updated.`)
+        await this.debug(`Service with id ${apiId.value} updated.`)
       }
 
       api.apiId = apiId
@@ -527,7 +524,7 @@ class TencentApiGateway extends Component {
             result.secretIds.value
           )
           if (!_.isEmpty(unboundSecretIds)) {
-            this.context.debug(
+            await this.debug(
               `Binding secret key ${unboundSecretIds} to usage plan with id ${result.usagePlanId.value}.`
             )
             await BindSecretIds({
@@ -536,10 +533,10 @@ class TencentApiGateway extends Component {
               secretIds: unboundSecretIds,
               usagePlanId: result.usagePlanId.value
             })
-            this.context.debug('Binding secret key successed.')
+            await this.debug('Binding secret key successed.')
           }
         } else {
-          this.context.debug('The auth valid secret key is empty.')
+          await this.debug('The auth valid secret key is empty.')
         }
 
         const apiUsagePlans = await DescribeApiUsagePlan({
@@ -556,7 +553,7 @@ class TencentApiGateway extends Component {
         })
 
         if (_.isEmpty(oldUsagePlan)) {
-          this.context.debug(
+          await this.debug(
             `Binding usage plan with id ${result.usagePlanId.value} to api id ${apiId.value} path ${endpoint.method} ${endpoint.path}.`
           )
 
@@ -569,9 +566,9 @@ class TencentApiGateway extends Component {
             bindType,
             apiIds: [apiId.value]
           })
-          this.context.debug('Binding successed.')
+          await this.debug('Binding successed.')
         } else {
-          this.context.debug(
+          await this.debug(
             `Usage plan with id ${result.usagePlanId.value} already bind to api id ${apiId.value} path ${endpoint.method} ${endpoint.path}.`
           )
         }
@@ -583,7 +580,7 @@ class TencentApiGateway extends Component {
         output.secretIds = result.secretIds.value.join(',')
       }
 
-      this.context.debug(`Deploying service with id ${serviceId}.`)
+      await this.debug(`Deploying service with id ${serviceId}.`)
       await ReleaseService({
         apig: apig,
         Region: region,
@@ -591,7 +588,7 @@ class TencentApiGateway extends Component {
         environmentName: environment,
         releaseDesc: 'Serverless api-gateway component deploy'
       })
-      this.context.debug(
+      await this.debug(
         `Deployment successful for the api named ${apiName} in the ${region} region.`
       )
 
