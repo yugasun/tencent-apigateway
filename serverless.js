@@ -140,7 +140,6 @@ class TencentApiGateway extends Component {
       this.context.credentials.tencent = tencent
     }
 
-    console.log("=======")
     this.context.status('Deploying')
 
     inputs.apiName = this.id.split('Template.')[1]
@@ -177,7 +176,7 @@ class TencentApiGateway extends Component {
     }
 
     if (region == 'ap-beijing') {
-      serviceInputs.exclusiveSetName = 'APIGW-serverless-set3'
+      serviceInputs.exclusiveSetName = 'APIGW_FOR_SCF_SET1'
     }
 
     let subDomain = ''
